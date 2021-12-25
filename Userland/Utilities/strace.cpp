@@ -265,7 +265,7 @@ struct BitflagBase {
 
 namespace AK {
 template<typename BitflagDerivative>
-    requires(IsBaseOf<BitflagBase, BitflagDerivative>) && requires { BitflagDerivative::options; }
+requires(IsBaseOf<BitflagBase, BitflagDerivative>) && requires { BitflagDerivative::options; }
 struct Formatter<BitflagDerivative> : StandardFormatter {
     Formatter() = default;
     explicit Formatter(StandardFormatter formatter)
@@ -398,6 +398,11 @@ public:
         (add_argument(forward<Ts>(args)), ...);
     }
 
+    void add_error(Error const& error, void* params_p)
+    {
+        m_builder.appendff("{} (params_p={:p})", error, params_p);
+    }
+
     template<typename T>
     void format_result_no_error(T res)
     {
@@ -454,7 +459,12 @@ static void format_getrandom(FormattedSyscallBuilder& builder, void* buffer, siz
 
 static void format_realpath(FormattedSyscallBuilder& builder, Syscall::SC_realpath_params* params_p, size_t length)
 {
-    auto params = copy_from_process(params_p).release_value_but_fixme_should_propagate_errors();
+    auto params_or_error = copy_from_process(params_p);
+    if (params_or_error.is_error()) {
+        builder.add_error(params_or_error.error(), params_p);
+        return;
+    }
+    auto params = params_or_error.release_value();
     builder.add_arguments(StringArgument { params.path }, StringArgument { { params.buffer.data, min(params.buffer.size, length) } });
 }
 
@@ -474,7 +484,12 @@ struct OpenOptions : BitflagBase {
 
 static void format_open(FormattedSyscallBuilder& builder, Syscall::SC_open_params* params_p)
 {
-    auto params = copy_from_process(params_p).release_value_but_fixme_should_propagate_errors();
+    auto params_or_error = copy_from_process(params_p);
+    if (params_or_error.is_error()) {
+        builder.add_error(params_or_error.error(), params_p);
+        return;
+    }
+    auto params = params_or_error.release_value();
 
     if (params.dirfd == AT_FDCWD)
         builder.add_argument("AT_FDCWD");
@@ -541,7 +556,12 @@ static void format_fstat(FormattedSyscallBuilder& builder, int fd, struct stat* 
 
 static void format_stat(FormattedSyscallBuilder& builder, Syscall::SC_stat_params* params_p)
 {
-    auto params = copy_from_process(params_p).release_value_but_fixme_should_propagate_errors();
+    auto params_or_error = copy_from_process(params_p);
+    if (params_or_error.is_error()) {
+        builder.add_error(params_or_error.error(), params_p);
+        return;
+    }
+    auto params = params_or_error.release_value();
     if (params.dirfd == AT_FDCWD)
         builder.add_argument("AT_FDCWD");
     else
@@ -571,8 +591,13 @@ static void format_close(FormattedSyscallBuilder& builder, int fd)
 
 static void format_poll(FormattedSyscallBuilder& builder, Syscall::SC_poll_params* params_p)
 {
+    auto params_or_error = copy_from_process(params_p);
+    if (params_or_error.is_error()) {
+        builder.add_error(params_or_error.error(), params_p);
+        return;
+    }
+    auto params = params_or_error.release_value();
     // TODO: format fds and sigmask properly
-    auto params = copy_from_process(params_p).release_value_but_fixme_should_propagate_errors();
     builder.add_arguments(
         params.nfds,
         PointerArgument { params.fds },
@@ -649,7 +674,12 @@ struct MemoryProtectionFlags : BitflagBase {
 
 static void format_mmap(FormattedSyscallBuilder& builder, Syscall::SC_mmap_params* params_p)
 {
-    auto params = copy_from_process(params_p).release_value_but_fixme_should_propagate_errors();
+    auto params_or_error = copy_from_process(params_p);
+    if (params_or_error.is_error()) {
+        builder.add_error(params_or_error.error(), params_p);
+        return;
+    }
+    auto params = params_or_error.release_value();
     builder.add_arguments(params.addr, params.size, MemoryProtectionFlags { params.prot }, MmapFlags { params.flags }, params.fd, params.offset, params.alignment, StringArgument { params.name });
 }
 
@@ -665,7 +695,12 @@ static void format_mprotect(FormattedSyscallBuilder& builder, void* addr, size_t
 
 static void format_set_mmap_name(FormattedSyscallBuilder& builder, Syscall::SC_set_mmap_name_params* params_p)
 {
-    auto params = copy_from_process(params_p).release_value_but_fixme_should_propagate_errors();
+    auto params_or_error = copy_from_process(params_p);
+    if (params_or_error.is_error()) {
+        builder.add_error(params_or_error.error(), params_p);
+        return;
+    }
+    auto params = params_or_error.release_value();
     builder.add_arguments(params.addr, params.size, StringArgument { params.name });
 }
 
