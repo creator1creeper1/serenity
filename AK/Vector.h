@@ -689,8 +689,8 @@ public:
         MUST(try_resize_and_keep_capacity(new_size));
     }
 
-    using ConstIterator = SimpleIterator<Vector const, T const>;
-    using Iterator = SimpleIterator<Vector, T>;
+    using ConstIterator = SimpleIterator<Vector const, RemoveReference<T> const>;
+    using Iterator = SimpleIterator<Vector, RemoveReference<T>>;
 
     ConstIterator begin() const { return ConstIterator::begin(*this); }
     Iterator begin() { return Iterator::begin(*this); }
