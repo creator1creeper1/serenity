@@ -9,6 +9,28 @@
 
 namespace Kernel::Memory {
 
+ErrorOr<void> InodeVMObject::try_create_into_child(Inode& inode, size_t size, InodeVMObject& slot_in_child)
+{
+    new (&slot_in_child) InodeVMObject(inode, size);
+    return {};
+
+ErrorOr<void>> InodeVMObject::try_clone_into_child(InodeVMObject& slot_in_child)
+{
+    new (&slot_in_child) InodeVMObject(*this);
+    return {};
+}
+
+InodeVMObject::InodeVMObject()
+    : VMObject()
+    , m_inode()
+
+InodeVMObject::InodeVMObject(InodeVMObject&& other)
+    : VMObject(move(static_cast<VMObject const&>(other)))
+    , m_inode(move(other.m_inode))
+    , m_dirty_pages(move(other.m_dirty_pages))
+{
+}
+
 InodeVMObject::InodeVMObject(Inode& inode, size_t size)
     : VMObject(size)
     , m_inode(inode)

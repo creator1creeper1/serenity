@@ -28,17 +28,22 @@ public:
     u32 executable_mappings() const;
 
 protected:
-    explicit InodeVMObject(Inode&, size_t);
-    explicit InodeVMObject(InodeVMObject const&);
+    explicit InodeVMObject();
+    static ErrorOr<void> try_create_into_child(Inode& inode, size_t size, InodeVMObject& slot_in_child);
+    ErrorOr<void> try_clone_into_child(InodeVMObject& slot_in_child);
 
     InodeVMObject& operator=(InodeVMObject const&) = delete;
     InodeVMObject& operator=(InodeVMObject&&) = delete;
-    InodeVMObject(InodeVMObject&&) = delete;
+    InodeVMObject(InodeVMObject&&);
 
     virtual bool is_inode() const final { return true; }
 
     NonnullRefPtr<Inode> m_inode;
     Bitmap m_dirty_pages;
+
+private:
+    explicit InodeVMObject(Inode&, size_t);
+    explicit InodeVMObject(InodeVMObject const&);
 };
 
 }

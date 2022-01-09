@@ -11,21 +11,20 @@ namespace Kernel::Memory {
 
 ErrorOr<NonnullRefPtr<PrivateInodeVMObject>> PrivateInodeVMObject::try_create_with_inode(Inode& inode)
 {
-    return adopt_nonnull_ref_or_enomem(new (nothrow) PrivateInodeVMObject(inode, inode.size()));
+    NonnullRefPtr<PrivateInoveVMObject> new_this = TRY(adopt_nonnull_ref_or_enomem(new (nothrow) PrivateInodeVMObject()));
+    TRY(InodeVMObject::try_create_into_child(inode, inode.size(), *new_this));
+    return new_this;
 }
 
 ErrorOr<NonnullRefPtr<VMObject>> PrivateInodeVMObject::try_clone()
 {
-    return adopt_nonnull_ref_or_enomem<VMObject>(new (nothrow) PrivateInodeVMObject(*this));
+    NonnullRefPtr<PrivateInodeVMObject> new_this = TRY(adopt_nonnull_ref_or_enomem(new (nothrow) PrivateInodeVMObject()));
+    TRY(static_cast<InodeVMObject*>(this)->try_clone_into_child(*new_this));
+    return new_this;
 }
 
-PrivateInodeVMObject::PrivateInodeVMObject(Inode& inode, size_t size)
-    : InodeVMObject(inode, size)
-{
-}
-
-PrivateInodeVMObject::PrivateInodeVMObject(PrivateInodeVMObject const& other)
-    : InodeVMObject(other)
+PrivateInodeVMObject::PrivateInodeVMObject()
+    : InodeVMObject()
 {
 }
 
