@@ -23,8 +23,7 @@ public:
 private:
     virtual bool is_private_inode() const override { return true; }
 
-    explicit PrivateInodeVMObject(Inode&, size_t);
-    explicit PrivateInodeVMObject(PrivateInodeVMObject const&);
+    explicit PrivateInodeVMObject(InodeVMObject&&);
 
     virtual StringView class_name() const override { return "PrivateInodeVMObject"sv; }
 

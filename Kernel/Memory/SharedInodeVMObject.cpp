@@ -12,26 +12,22 @@ namespace Kernel::Memory {
 
 ErrorOr<NonnullRefPtr<SharedInodeVMObject>> SharedInodeVMObject::try_create_with_inode(Inode& inode)
 {
-    size_t size = inode.size();
     if (auto shared_vmobject = inode.shared_vmobject())
         return shared_vmobject.release_nonnull();
-    auto vmobject = TRY(adopt_nonnull_ref_or_enomem(new (nothrow) SharedInodeVMObject(inode, size)));
+    InodeVMObject new_parent = TRY(InodeVMObject::try_create(inode, inode.size()));
+    auto vmobject = TRY(adopt_nonnull_ref_or_enomem(new (nothrow) SharedInodeVMObject(move(new_parent))));
     vmobject->inode().set_shared_vmobject(*vmobject);
     return vmobject;
 }
 
 ErrorOr<NonnullRefPtr<VMObject>> SharedInodeVMObject::try_clone()
 {
-    return adopt_nonnull_ref_or_enomem<VMObject>(new (nothrow) SharedInodeVMObject(*this));
+    InodeVMObject new_parent = TRY(static_cast<InodeVMObject*>(this)->try_clone_nonvirtual());
+    return adopt_nonnull_ref_or_enomem<VMObject>(new (nothrow) SharedInodeVMObject(move(new_parent)));
 }
 
-SharedInodeVMObject::SharedInodeVMObject(Inode& inode, size_t size)
-    : InodeVMObject(inode, size)
-{
-}
-
-SharedInodeVMObject::SharedInodeVMObject(SharedInodeVMObject const& other)
-    : InodeVMObject(other)
+SharedInodeVMObject::SharedInodeVMObject(InodeVMObject&& new_parent)
+    : InodeVMObject(move(new_parent))
 {
 }
 

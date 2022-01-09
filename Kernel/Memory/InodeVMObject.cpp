@@ -9,6 +9,23 @@
 
 namespace Kernel::Memory {
 
+ErrorOr<InodeVMObject> InodeVMObject::try_create(Inode& inode, size_t size)
+{
+    return InodeVMObject(inode, size);
+}
+
+ErrorOr<InodeVMObject> InodeVMObject::try_clone_nonvirtual()
+{
+    return InodeVMObject(*this);
+}
+
+InodeVMObject::InodeVMObject(InodeVMObject&& other)
+    : VMObject(move(static_cast<VMObject const&>(other)))
+    , m_inode(move(other.m_inode))
+    , m_dirty_pages(move(other.m_dirty_pages))
+{
+}
+
 InodeVMObject::InodeVMObject(Inode& inode, size_t size)
     : VMObject(size)
     , m_inode(inode)
