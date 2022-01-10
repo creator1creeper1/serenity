@@ -17,16 +17,27 @@ SpinlockProtected<VMObject::AllInstancesList>& VMObject::all_instances()
     return s_all_instances;
 }
 
-VMObject::VMObject(VMObject const& other)
-    : m_physical_pages(other.m_physical_pages.must_clone_but_fixme_should_propagate_errors())
+ErrorOr<void> VMObject::initialize(VMObject const& other)
 {
+    TRY(initialize_common());
+    new (&m_physical_pages) FixedArray<RefPtr<PhysicalPage>>(TRY(other.m_physical_pages.try_clone()));
     all_instances().with([&](auto& list) { list.append(*this); });
 }
 
-VMObject::VMObject(size_t size)
-    : m_physical_pages(FixedArray<RefPtr<PhysicalPage>>::must_create_but_fixme_should_propagate_errors(ceil_div(size, static_cast<size_t>(PAGE_SIZE))))
+ErrorOr<void> VMObject::initialize(size_t size)
 {
+    TRY(initialize_common());
+    new (&m_physical_pages) FixedArray<RefPtr<PhysicalPage>>(TRY(FixedArray<RefPtr<PhysicalPage>>::try_create(ceil_div(size, static_cast<size_t>(PAGE_SIZE)))));
     all_instances().with([&](auto& list) { list.append(*this); });
+}
+
+ErrorOr<void> VMObject::initialize_common()
+{
+    TRY((static_cast<InheritedInitializable<VMObject, ListedRefCountedSpinlock> *>(this))->initialize());
+    TRY((static_cast<InheritedInitializable<VMObject, Weakable> *>(this))->initialize());
+    new (&m_list_node) IntrusiveListNode<VMObject>;
+    new (&m_lock) RecursiveSpinlock;
+    new (&m_regions) Region::ListInVMObject;
 }
 
 VMObject::~VMObject()

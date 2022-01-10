@@ -17,9 +17,51 @@
 
 namespace Kernel::Memory {
 
+template <typename T>
+class Factory
+{
+public:
+    template <typename... Args>
+    static ErrorOr<NonnullRefPtr<T>> try_create(Args&&... args)
+    {
+        class UninitializedT
+        {
+        public:
+            UninitializedT() {}
+        private:
+            union
+            {
+                T m_t;
+            };
+            //alignas(T) u8 m_buf[sizeof(T)];
+        };
+        T *ptr = reinterpret_cast<T *>(new (nothrow) UninitializedT);
+        if (!ptr)
+            return Error::from_errno(ENOMEM);
+        TRY(ptr->initialize(forward<Args>(args)...));
+        return *ptr;
+    }
+};
+
+template <typename Derived, template <typename> typename Base>
+class InheritedInitializable : public Base<InheritedInitializable<Derived, Base>>
+{
+private:
+    using BaseType = Base<InheritedInitializable<Derived, Base>>;
+public:
+    ErrorOr<void> initialize()
+    {
+        new (static_cast<BaseType *>(this)) BaseType();
+        return {};
+    }
+};
+
+template <typename Derived>
+using ListedRefCountedSpinlock = ListedRefCounted<Derived, LockType::Spinlock>;
+
 class VMObject
-    : public ListedRefCounted<VMObject, LockType::Spinlock>
-    , public Weakable<VMObject> {
+    : public InheritedInitializable<VMObject, ListedRefCountedSpinlock>
+    , public InheritedInitializable<VMObject, Weakable> {
     friend class MemoryManager;
     friend class Region;
 
@@ -54,9 +96,13 @@ public:
     }
 
 protected:
-    explicit VMObject(size_t);
-    explicit VMObject(VMObject const&);
+    ErrorOr<void> initialize(size_t);
+    ErrorOr<void> initialize(VMObject const&);
 
+private:
+    ErrorOr<void> initialize_common();
+
+protected:
     template<typename Callback>
     void for_each_region(Callback);
 
