@@ -103,24 +103,24 @@ public:
         clear();
     }
 
-    Span<StorageType> span() { return { data(), size() }; }
-    Span<StorageType const> span() const { return { data(), size() }; }
+    ALWAYS_INLINE Span<StorageType> span() { return { data(), size() }; }
+    ALWAYS_INLINE Span<StorageType const> span() const { return { data(), size() }; }
 
-    operator Span<StorageType>() { return span(); }
-    operator Span<StorageType const>() const { return span(); }
+    ALWAYS_INLINE operator Span<StorageType>() { return span(); }
+    ALWAYS_INLINE operator Span<StorageType const>() const { return span(); }
 
-    bool is_empty() const { return size() == 0; }
+    ALWAYS_INLINE bool is_empty() const { return size() == 0; }
     ALWAYS_INLINE size_t size() const { return m_size; }
-    size_t capacity() const { return m_capacity; }
+    ALWAYS_INLINE size_t capacity() const { return m_capacity; }
 
-    StorageType* data()
+    ALWAYS_INLINE StorageType* data()
     {
         if constexpr (inline_capacity > 0)
             return m_outline_buffer ? m_outline_buffer : inline_buffer();
         return m_outline_buffer;
     }
 
-    StorageType const* data() const
+    ALWAYS_INLINE StorageType const* data() const
     {
         if constexpr (inline_capacity > 0)
             return m_outline_buffer ? m_outline_buffer : inline_buffer();
@@ -148,11 +148,11 @@ public:
     ALWAYS_INLINE VisibleType const& operator[](size_t i) const { return at(i); }
     ALWAYS_INLINE VisibleType& operator[](size_t i) { return at(i); }
 
-    VisibleType const& first() const { return at(0); }
-    VisibleType& first() { return at(0); }
+    ALWAYS_INLINE VisibleType const& first() const { return at(0); }
+    ALWAYS_INLINE VisibleType& first() { return at(0); }
 
-    VisibleType const& last() const { return at(size() - 1); }
-    VisibleType& last() { return at(size() - 1); }
+    ALWAYS_INLINE VisibleType const& last() const { return at(size() - 1); }
+    ALWAYS_INLINE VisibleType& last() { return at(size() - 1); }
 
     template<typename TUnaryPredicate>
     Optional<VisibleType> first_matching(TUnaryPredicate predicate) requires(!contains_reference)
@@ -207,23 +207,23 @@ public:
 #ifndef KERNEL
 
     template<typename U = T>
-    void insert(size_t index, U&& value) requires(CanBePlacedInsideVector<U>)
+    ALWAYS_INLINE void insert(size_t index, U&& value) requires(CanBePlacedInsideVector<U>)
     {
         MUST(try_insert<U>(index, forward<U>(value)));
     }
 
     template<typename TUnaryPredicate, typename U = T>
-    void insert_before_matching(U&& value, TUnaryPredicate predicate, size_t first_index = 0, size_t* inserted_index = nullptr) requires(CanBePlacedInsideVector<U>)
+    ALWAYS_INLINE void insert_before_matching(U&& value, TUnaryPredicate predicate, size_t first_index = 0, size_t* inserted_index = nullptr) requires(CanBePlacedInsideVector<U>)
     {
         MUST(try_insert_before_matching(forward<U>(value), predicate, first_index, inserted_index));
     }
 
-    void extend(Vector&& other)
+    ALWAYS_INLINE void extend(Vector&& other)
     {
         MUST(try_extend(move(other)));
     }
 
-    void extend(Vector const& other)
+    ALWAYS_INLINE void extend(Vector const& other)
     {
         MUST(try_extend(other));
     }
@@ -244,7 +244,7 @@ public:
     }
 
 #ifndef KERNEL
-    void append(StorageType const* values, size_t count)
+    ALWAYS_INLINE void append(StorageType const* values, size_t count)
     {
         MUST(try_append(values, count));
     }
@@ -272,23 +272,23 @@ public:
 
 #ifndef KERNEL
     template<class... Args>
-    void empend(Args&&... args) requires(!contains_reference)
+    ALWAYS_INLINE void empend(Args&&... args) requires(!contains_reference)
     {
         MUST(try_empend(forward<Args>(args)...));
     }
 
     template<typename U = T>
-    void prepend(U&& value) requires(CanBePlacedInsideVector<U>)
+    ALWAYS_INLINE void prepend(U&& value) requires(CanBePlacedInsideVector<U>)
     {
         MUST(try_insert(0, forward<U>(value)));
     }
 
-    void prepend(Vector&& other)
+    ALWAYS_INLINE void prepend(Vector&& other)
     {
         MUST(try_prepend(move(other)));
     }
 
-    void prepend(StorageType const* values, size_t count)
+    ALWAYS_INLINE void prepend(StorageType const* values, size_t count)
     {
         MUST(try_prepend(values, count));
     }
@@ -421,7 +421,7 @@ public:
         return something_was_removed;
     }
 
-    ALWAYS_INLINE T take_last()
+    T take_last()
     {
         VERIFY(!is_empty());
         auto value = move(raw_last());
@@ -652,12 +652,12 @@ public:
         return try_resize(new_size, true);
     }
 
-    void grow_capacity(size_t needed_capacity)
+    ALWAYS_INLINE void grow_capacity(size_t needed_capacity)
     {
         MUST(try_grow_capacity(needed_capacity));
     }
 
-    void ensure_capacity(size_t needed_capacity)
+    ALWAYS_INLINE void ensure_capacity(size_t needed_capacity)
     {
         MUST(try_ensure_capacity(needed_capacity));
     }
@@ -681,12 +681,12 @@ public:
         m_size = new_size;
     }
 
-    void resize(size_t new_size, bool keep_capacity = false) requires(!contains_reference)
+    ALWAYS_INLINE void resize(size_t new_size, bool keep_capacity = false) requires(!contains_reference)
     {
         MUST(try_resize(new_size, keep_capacity));
     }
 
-    void resize_and_keep_capacity(size_t new_size) requires(!contains_reference)
+    ALWAYS_INLINE void resize_and_keep_capacity(size_t new_size) requires(!contains_reference)
     {
         MUST(try_resize_and_keep_capacity(new_size));
     }
