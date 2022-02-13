@@ -14,6 +14,7 @@
 #include <LibCore/MimeData.h>
 #include <LibGUI/Action.h>
 #include <LibGUI/Application.h>
+#include <LibGUI/Button.h>
 #include <LibGUI/Desktop.h>
 #include <LibGUI/Event.h>
 #include <LibGUI/MenuItem.h>
