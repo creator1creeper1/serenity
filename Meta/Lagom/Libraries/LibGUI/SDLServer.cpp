@@ -34,6 +34,10 @@ SDLServer::SDLServer()
                 return;
             }
 
+            // "0" is the window ID for the desktop. Let's ignore all of those events.
+            if (event.window.windowID == 0)
+                continue;
+
             switch (event.type) {
             case SDL_MOUSEMOTION: {
                 auto window = Window::from_window_id(get_window_from_sdl_id(event.window.windowID));
