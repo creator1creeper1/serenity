@@ -77,6 +77,10 @@ SDLServer::SDLServer()
                     WindowServerConnection::the().window_resized(window->window_id(), Gfx::IntRect(0, 0, event.window.data1, event.window.data2));
                     break;
                 }
+                case SDL_WINDOWEVENT_CLOSE: {
+                    window->close();
+                    break;
+                }
                 }
                 break;
             }
