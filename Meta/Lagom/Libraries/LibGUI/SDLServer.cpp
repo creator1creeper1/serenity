@@ -94,6 +94,15 @@ SDLServer::SDLServer()
             if (!bitmap)
                 continue;
 
+            int sdl_width, sdl_height;
+            SDL_GetWindowSize(sdl_window, &sdl_width, &sdl_height);
+
+            // If we resize the window fast enough there will be a size missmatch; let's handle that.
+            if (bitmap->width() != sdl_width || bitmap->height() != sdl_height) {
+                warn("SDL: Window size mismatch! {} != {} || {} != {}\n", bitmap->width(), sdl_width, bitmap->height(), sdl_height);
+                return;
+            }
+
             // FIXME: only do this if the bitmap is dirty
             SDL_LockSurface(screen_surface);
 

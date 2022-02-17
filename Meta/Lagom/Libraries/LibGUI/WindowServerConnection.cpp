@@ -97,7 +97,7 @@ void WindowServerConnection::async_create_window(i32 window_id, Gfx::IntRect con
         SDL_WINDOWPOS_CENTERED,
         rect.width(),
         rect.height(),
-        SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
+        SDL_WINDOW_SHOWN);
 
     SDL_SetWindowResizable(window, SDL_bool(resizable));
     SDL_SetWindowOpacity(window, opacity);
