@@ -171,19 +171,31 @@ Wasm::Result blit(Wasm::Configuration& configuration, size_t, Wasm::Value* value
         RefPtr<Gfx::Bitmap> src_bitmap = MUST(Gfx::Bitmap::try_create(Gfx::BitmapFormat::BGRA8888, { w, h }));
         auto colors = palette(*memory);
         auto slice = memory->data().span().offset_pointer(sprite_ptr);
-        AK::BitmapView bslice { slice, (size_t)(w * h * (flags & 1 ? 2 : 1)) };
+        auto revert_u8 = [](u8 n){ return ((n & 0x1) << 7) | ((n & 0x2) << 5) | ((n & 0x4) << 3) | ((n & 0x8) << 1)
+                                        | ((n & 0x10) >> 1) | ((n & 0x20) >> 3) | ((n & 0x40) >> 5) | ((n & 0x80) >> 7); };
+        u8* new_data = (u8*)malloc(w * h * 2);
+        for (int i = 0; i < w * h * 2; ++i)
+            new_data[i] = revert_u8(slice[i]);
+        AK::BitmapView bslice { new_data, (size_t)(w * h * (flags & 1 ? 2 : 1)) };
+        out("x: {}, y: {}, w: {}, h: {}\n", x, y, w, h);
         for (int i = 0; i < w * h; ++i) {
             auto y_ = i / w;
             auto x_ = i % w;
             u8 index;
             if (flags & 1)
-                index = ((u8)bslice.get(2 * i + 1) << 1) | (u8)bslice.get(2 * i);
+                index = ((u8)bslice.get(2 * i) << 1) | (u8)bslice.get(2 * i + 1);
             else
                 index = bslice.get(i);
             auto color = colors[index];
+            char chars[4] = { '.', '1', '2', '3' };
+            char c = chars[index];
+            out("{}{}", c, c);
+            if (x_ == w - 1)
+                out("\n");
             src_bitmap->set_pixel(x_, y_, color);
         }
         painter.draw_scaled_bitmap(transform.map(rect), *src_bitmap, src_bitmap->rect());
+        free(new_data);
     }
 
     return Wasm::Result { Vector<Wasm::Value> {} };
