@@ -338,12 +338,18 @@ if (BUILD_LAGOM)
         SOURCES ${LIBGL_SOURCES} ${LIBGL_TEX_SOURCES}
         LIBS m LagomGfx LagomSoftGPU)
 
+    # Syntax
+    file(GLOB LIBSYNTAX_SOURCES CONFIGURE_DEPENDS "../../Userland/Libraries/LibSyntax/*.cpp")
+    lagom_lib(Syntax syntax
+        SOURCES ${LIBSYNTAX_SOURCES}
+    )
+
     # GUI-GML
     file(GLOB LIBGUI_GML_SOURCES CONFIGURE_DEPENDS "../../Userland/Libraries/LibGUI/GML/*.cpp")
     list(REMOVE_ITEM LIBGUI_GML_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../../Userland/Libraries/LibGUI/GML/AutocompleteProvider.cpp")
-    list(REMOVE_ITEM LIBGUI_GML_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../../Userland/Libraries/LibGUI/GML/SyntaxHighlighter.cpp")
     lagom_lib(GML gml
         SOURCES ${LIBGUI_GML_SOURCES}
+        LIBS LagomSyntax
     )
 
     # HTTP
@@ -470,12 +476,12 @@ if (BUILD_LAGOM)
         file(GLOB LIBGUI_SUBDIR_SOURCES CONFIGURE_DEPENDS "../../Userland/Libraries/LibGUI/Lagom/*.cpp")
 
         # Re-impl in `Libraries/LibGUI`
+        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/Clipboard.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/Desktop.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/WindowManagerServerConnection.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/WindowServerConnection.*")
 
         # FIXME: Let's exclude a bunch of things to get something building :^)
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/Clipboard.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ColorInput.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/DisplayLink.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/Notification.*")
@@ -485,26 +491,17 @@ if (BUILD_LAGOM)
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ScreenLayout.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/SettingsWindow.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ProcessChooser.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)Engine.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)View.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)Model.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)Picker(.*).*")
         
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/AutocompleteProvider.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/CommandPalette.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ComboBox.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/TextEditor.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/TextBox.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/TextDocument.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/InputBox.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/PasswordBox.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/SpinBox.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/LinkLabel.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ValueSlider.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)Highlighter.*")
         lagom_lib(GUI gui
             SOURCES ${SDL2_INCLUDE_DIRS} ${LIBGUI_LAGOM_SOURCES} ${LIBGUI_SUBDIR_SOURCES} ${LIBGUI_SOURCES}
-            LIBS SDL2::SDL2 LagomELF LagomGfx LagomGML
+            LIBS SDL2::SDL2 LagomELF LagomGfx LagomGML LagomRegex
         )
     endif()
 
