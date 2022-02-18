@@ -373,7 +373,7 @@ private:
     {
     }
 
-    MemoryType const& m_type;
+    MemoryType m_type;
     size_t m_size { 0 };
     ByteBuffer m_data;
 };
