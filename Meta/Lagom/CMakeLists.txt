@@ -492,13 +492,7 @@ if (BUILD_LAGOM)
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/SettingsWindow.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ProcessChooser.*")
         list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)Picker(.*).*")
-        
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/CommandPalette.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ComboBox.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/PasswordBox.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/LinkLabel.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/ValueSlider.*")
-        list(FILTER LIBGUI_SOURCES EXCLUDE REGEX "../../Userland/Libraries/LibGUI/(.*)Highlighter.*")
+
         lagom_lib(GUI gui
             SOURCES ${SDL2_INCLUDE_DIRS} ${LIBGUI_LAGOM_SOURCES} ${LIBGUI_SUBDIR_SOURCES} ${LIBGUI_SOURCES}
             LIBS SDL2::SDL2 LagomELF LagomGfx LagomGML LagomRegex
