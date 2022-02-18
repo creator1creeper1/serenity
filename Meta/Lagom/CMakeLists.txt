@@ -515,8 +515,8 @@ if (BUILD_LAGOM)
         target_link_libraries(TestApp LagomCore)
 
         if(${SDL2_FOUND})
-            add_executable(DemoGUI Demos/DemoGUI.cpp)
-            target_link_libraries(DemoGUI LagomCore LagomMain LagomGUI)
+            add_library(DemoGUI Demos/DemoGUI.cpp)
+            target_link_libraries(DemoGUI LagomCore LagomGUI LagomWasm)
         endif()
 
         add_executable(TestJson TestJson.cpp)

@@ -8,6 +8,7 @@
 #include <LibCore/ArgsParser.h>
 #include <LibCore/File.h>
 #include <LibCore/FileStream.h>
+#include <LibCore/Timer.h>
 #include <LibLine/Editor.h>
 #include <LibMain/Main.h>
 #include <LibWasm/AbstractMachine/AbstractMachine.h>
@@ -291,6 +292,7 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     Vector<String> modules_to_link_in;
     Vector<ImportedNativeObject> imported_native_objects;
     Optional<ExportedMemory> exported_memory;
+    String loop_call;
 
     Core::ArgsParser parser;
     parser.add_positional_argument(filename, "File name to parse", "file");
@@ -299,6 +301,7 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     parser.add_option(attempt_instantiate, "Attempt to instantiate the module", "instantiate", 'i');
     parser.add_option(exported_function_to_execute, "Attempt to execute the named exported function from the module (implies -i)", "execute", 'e', "name");
     parser.add_option(export_all_imports, "Export noop functions corresponding to imports", "export-noop", 0);
+    parser.add_option(loop_call, "Call this function in a loop (must be nullary)", "loop", 0, "name");
     parser.add_option(shell_mode, "Launch a REPL in the module's context (implies -i)", "shell", 's');
     parser.add_option(Core::ArgsParser::Option {
         .requires_argument = true,
@@ -406,6 +409,7 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
     if (attempt_instantiate) {
         Wasm::AbstractMachine machine;
         Core::EventLoop main_loop;
+        auto loop_timer = Core::Timer::create_repeating(100 / 3, [] {});
         if (debug) {
             g_line_editor = Line::Editor::construct();
             g_interpreter.pre_interpret_hook = pre_interpret_hook;
@@ -443,6 +447,53 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
         for (auto& instance : linked_instances)
             linker.link(instance);
 
+        HashMap<Wasm::Linker::Name, Wasm::ExternValue> native_exports;
+        for (auto& native_object : imported_native_objects) {
+            auto handle = dlopen(native_object.name.characters(), RTLD_NOW);
+            if (!handle) {
+                warnln("Error loading {}: {}", native_object.name, dlerror());
+                return Error::from_string_literal(dlerror());
+            }
+
+            HashTable<Wasm::Linker::Name>& unresolved_imports = linker.unresolved_imports();
+            for (auto& entry : unresolved_imports) {
+                if (!entry.type.has<Wasm::TypeIndex>())
+                    continue;
+
+                auto it = native_object.import_names.find(entry.name);
+                if (it.is_end())
+                    continue;
+
+                auto symbol = dlsym(handle, it->characters());
+                if (!symbol) {
+                    warnln("Failed to find the imported symbol '{}' in {}", *it, native_object.name);
+                    return Error::from_string_literal("Failed to find a symbol");
+                }
+
+                auto type = parse_result.value().type(entry.type.get<Wasm::TypeIndex>());
+                auto address = machine.store().allocate(Wasm::HostFunction(
+                    [symbol](auto& configuration, auto& arguments) -> Wasm::Result {
+                        typedef Wasm::Result (*fn)(Wasm::Configuration&, size_t, Wasm::Value*);
+                        return ((fn)symbol)(configuration, arguments.size(), arguments.data());
+                    },
+                    type));
+                native_exports.set(entry, *address);
+            }
+        }
+
+        if (exported_memory.has_value()) {
+            auto type = Wasm::MemoryType(Wasm::Limits(exported_memory->size, {}));
+            auto address = machine.store().allocate(type);
+            Wasm::Linker::Name name {
+                "env",
+                exported_memory->export_name,
+                move(type),
+            };
+            native_exports.set(move(name), *address);
+        }
+
+        linker.link(native_exports);
+
         if (export_all_imports) {
             HashMap<Wasm::Linker::Name, Wasm::ExternValue> exports;
             for (auto& entry : linker.unresolved_imports()) {
@@ -476,55 +527,6 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
 
             linker.link(exports);
         }
-
-        HashMap<Wasm::Linker::Name, Wasm::ExternValue> native_exports;
-        for (auto& native_object : imported_native_objects) {
-            auto handle = dlopen(native_object.name.characters(), RTLD_NOW);
-            if (!handle) {
-                warnln("Error loading {}: {}", native_object.name, dlerror());
-                return Error::from_string_literal(dlerror());
-            }
-
-            HashTable<Wasm::Linker::Name>& unresolved_imports = linker.unresolved_imports();
-            for (auto& entry : unresolved_imports) {
-                if (!entry.type.has<Wasm::TypeIndex>())
-                    continue;
-
-                auto it = native_object.import_names.find(entry.name);
-                if (it.is_end())
-                    continue;
-
-                auto symbol = dlsym(handle, it->characters());
-                if (!symbol) {
-                    warnln("Failed to find the imported symbol '{}' in {}", *it, native_object.name);
-                    return Error::from_string_literal("Failed to find a symbol");
-                }
-
-                auto type = parse_result.value().type(entry.type.get<Wasm::TypeIndex>());
-                auto address = machine.store().allocate(Wasm::HostFunction(
-                    [symbol](auto& configuration, auto& arguments) -> Wasm::Result {
-                        typedef Wasm::Value (*fn)(Wasm::Configuration&, size_t, Wasm::Value*);
-                        return Wasm::Result {
-                            Vector<Wasm::Value> { ((fn)symbol)(configuration, arguments.size(), arguments.data()) }
-                        };
-                    },
-                    type));
-                native_exports.set(entry, *address);
-            }
-        }
-
-        if (exported_memory.has_value()) {
-            auto type = Wasm::MemoryType(Wasm::Limits(exported_memory->size));
-            auto address = machine.store().allocate(type);
-            Wasm::Linker::Name name {
-                "env",
-                exported_memory->export_name,
-                move(type),
-            };
-            native_exports.set(move(name), *address);
-        }
-
-        linker.link(native_exports);
 
         auto link_result = linker.finish();
         if (link_result.is_error()) {
@@ -583,7 +585,7 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
             return 0;
         }
 
-        if (!exported_function_to_execute.is_empty()) {
+        auto invoke_function = [&](String exported_function_to_execute) {
             Optional<Wasm::FunctionAddress> run_address;
             Vector<Wasm::Value> values;
             for (auto& entry : module_instance->exports()) {
@@ -634,6 +636,18 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
                     g_printer.print(value);
                 }
             }
+            return 0;
+        };
+
+        if (!exported_function_to_execute.is_empty())
+            invoke_function(exported_function_to_execute);
+
+        if (!loop_call.is_empty()) {
+            loop_timer->on_timeout = [&] {
+                invoke_function(loop_call);
+            };
+            loop_timer->start();
+            main_loop.exec();
         }
     }
 
