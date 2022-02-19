@@ -176,6 +176,14 @@ Wasm::Result blit(Wasm::Configuration& configuration, size_t, Wasm::Value* value
         u8* new_data = (u8*)malloc(w * h * 2);
         for (int i = 0; i < w * h * 2; ++i)
             new_data[i] = revert_u8(slice[i]);
+        out("Old Data:\n");
+        for (int i = 0; i < w * h * w; ++i)
+            out("{:#x}, ", slice[i]);
+        out("\n");
+        out("Reverted Data:\n");
+        for (int i = 0; i < w * h * 2; ++i)
+            out("{:#x}, ", new_data[i]);
+        out("\n");
         AK::BitmapView bslice { new_data, (size_t)(w * h * (flags & 1 ? 2 : 1)) };
         out("x: {}, y: {}, w: {}, h: {}\n", x, y, w, h);
         for (int i = 0; i < w * h; ++i) {
